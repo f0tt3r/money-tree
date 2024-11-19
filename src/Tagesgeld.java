@@ -79,6 +79,66 @@ public class Tagesgeld {
         
         return monatsverzinsung(vorher,monate <= this.getAngebotsmonate()) + rest;
 	}
+
+    public double optimaleVerzinsung(double init, int nm) {
+        if (nm == 0 && this.angebotsmonate == 0) {
+            return init;
+        }
+        double maxEndbetrag = init;
+        if (this.angebotsmonate > 0) {
+            maxEndbetrag = Math.max(maxEndbetrag, optimaleVerzinsung(monatsverzinsung(init, true), nm));
+        }
+        if (nm > 0) {
+            maxEndbetrag = Math.max(maxEndbetrag, optimaleVerzinsung(monatsverzinsung(init, false), nm - 1));
+        }
+        return maxEndbetrag;
+    }
+
+    public int verkuerzeUmKuerzesteLaufzeit(boolean verkuerze, Tagesgeld t1, Tagesgeld t2, Tagesgeld t3) {
+        int minAngebotsmonate = Integer.MAX_VALUE;
+        if (t1 != null && t1.getAngebotsmonate() > 0) {
+            minAngebotsmonate = Math.min(minAngebotsmonate, t1.getAngebotsmonate());
+        }
+        if (t2 != null && t2.getAngebotsmonate() > 0) {
+            minAngebotsmonate = Math.min(minAngebotsmonate, t2.getAngebotsmonate());
+        }
+        if (t3 != null && t3.getAngebotsmonate() > 0) {
+            minAngebotsmonate = Math.min(minAngebotsmonate, t3.getAngebotsmonate());
+        }
+        if (minAngebotsmonate == Integer.MAX_VALUE) {
+            return minAngebotsmonate;
+        }
+        if (verkuerze) {
+            if (t1 != null && t1.getAngebotsmonate() > 0) {
+                t1.setAngebotsmonate(t1.getAngebotsmonate() - minAngebotsmonate);
+            }
+            if (t2 != null && t2.getAngebotsmonate() > 0) {
+                t2.setAngebotsmonate(t2.getAngebotsmonate() - minAngebotsmonate);
+            }
+            if (t3 != null && t3.getAngebotsmonate() > 0) {
+                t3.setAngebotsmonate(t3.getAngebotsmonate() - minAngebotsmonate);
+            }
+        }
+        return minAngebotsmonate;
+    }
+
+    public static double verzinseParallel(double init, int monate, Tagesgeld t1, Tagesgeld t2, Tagesgeld t3) {
+        double totalAmount = init;
+        totalAmount = verzinseParallelHelper(totalAmount, monate, t1);
+        totalAmount = verzinseParallelHelper(totalAmount, monate, t2);
+        totalAmount = verzinseParallelHelper(totalAmount, monate, t3);
+        return totalAmount;
+    }
+
+    private static double verzinseParallelHelper(double init, int monate, Tagesgeld t) {
+        if (t != null && t.getAngebotsmonate() > 0) {
+            double limit = Math.min(t.getMaxBetrag(), 100000);
+            double amount = Math.min(init, limit);
+            init -= amount;
+            init += t.verzinse(amount, Math.min(monate, t.getAngebotsmonate()));
+        }
+        return init;
+    }
     
     //Diese Methode ist public, da wir von ausserhalb der Klasse Tagesgeld das beste Tagesgeld fuer eine
     //  bestimmte Situation berechnen koennen wollen
